@@ -1,0 +1,80 @@
+.picker-mask{
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.5)
+}
+.picker-container{
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 40vh;
+    background: #fff;
+}
+.picker-operate{
+    display: flex;
+}
+.picker-cancel,
+.picker-confirm{
+    padding: 0 10px;
+    line-height: 45px;
+    font-size: 16px;
+}
+.picker-cancel{
+    color: #999;
+}
+.picker-confirm{
+    margin-left: auto;
+    color: rgb(15, 18, 247);
+}
+.picker-box{
+    display: flex;
+    flex: 1;
+    position: relative;
+}
+.picker-columns{
+    display: flex;
+    flex: 1;
+    padding: 10px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+.picker-column{
+    display: flex;
+    flex: 1;
+}
+.picker-scroll{
+    flex: 1;
+    position: relative;
+}
+.picker-list{
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(calc(100% - 40px) / 2);
+    bottom: 0;
+    text-align: center;
+}
+.picker-item{
+    line-height: 40px;
+}
+.picker-view{
+    position: absolute;
+    left: 0;
+    right:0;
+    top: 0;
+    bottom: 0;
+    height: 40px;
+    margin: auto 0;
+    box-sizing: border-box;
+    border: solid rgba(0, 0, 0, 0.1);
+    border-width: 1px 0;
+    pointer-events: none;
+}
+
+.picker-label{
+    align-self: center;
+}
