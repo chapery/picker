@@ -177,7 +177,7 @@ Picker.prototype = {
         that.touch.inertiaActive = true;
 
         interval(function () {
-            speed = speed + acceleration;
+            speed += acceleration;
             distance += speed * duration;
             processCallback && processCallback(distance);
         });
