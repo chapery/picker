@@ -89,7 +89,7 @@ Picker.prototype = {
             clientY: clientY,
             timeStamp: e.timeStamp
         });
-        this.touch.lastTouchMovePoints.slice(-5);
+        this.touch.lastTouchMovePoints = this.touch.lastTouchMovePoints.slice(-5);
     },
 
     touchEnd: function (e) {
@@ -129,6 +129,8 @@ Picker.prototype = {
             that.touch.elList.dataset.translateY = translateY;
         }, function () {
             that.touch.translateY = 0;
+
+            // 超过上下边界时回弹
         });
 
         that.touch.elScroll = null;
@@ -143,12 +145,13 @@ Picker.prototype = {
      * @param {Function} finishCallback 运动结束回调
      */
     inertia: function (speed, processCallback, finishCallback) {
-        console.log(speed)
         var that = this;
         var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
         var duration = 1000 / 60;
+
         // 加速度
         var acceleration = (speed > 0 ? -1 : 1) * 0.03;
+
         // 累计移动距离
         var distance = 0;
 
@@ -177,9 +180,9 @@ Picker.prototype = {
         that.touch.inertiaActive = true;
 
         interval(function () {
-            speed += acceleration;
             distance += speed * duration;
             processCallback && processCallback(distance);
+            speed += acceleration;
         });
     },
 };
