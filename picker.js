@@ -24,7 +24,7 @@ var Picker = function (target, config) {
 }
 
 Picker.prototype = {
-    
+
     consturctor: Picker,
 
     /**
@@ -40,11 +40,11 @@ Picker.prototype = {
             }).join('');
             var columnHtml = '<div class="picker-scroll">\
                                 <div class="picker-list">'
-                                + optionsHtml + 
+                                + optionsHtml +
                                 '</div>\
                             </div>\
                             <div class="picker-label">'
-                            + column.label + 
+                            + column.label +
                             '</div>';
 
             elColumn.className = 'picker-column';
@@ -54,10 +54,10 @@ Picker.prototype = {
 
         });
     },
-    
+
     bindEvent: function () {
         var that = this;
-        
+
         [].forEach.call(that.elColumns.querySelectorAll('.picker-scroll'), function (elScroll) {
             elScroll.addEventListener('touchstart', that.touchStart.bind(that), false);
             elScroll.addEventListener('touchend', that.touchEnd.bind(that), false);
@@ -71,20 +71,21 @@ Picker.prototype = {
         this.touch.elScroll = e.currentTarget;
         this.touch.elList = e.currentTarget.querySelector('.picker-list');
         this.touch.inertiaActive = false;
+        e.preventDefault();
     },
 
     touchMove: function (e) {
         var disY = 0;
         var clientY = e.touches[0].clientY;
-
+        
         if (!this.touch.elScroll) {
             return true;
         }
 
         disY = clientY - this.touch.startY + (Number(this.touch.elList.dataset.translateY) || 0);
-        this.touch.elList.style.transition = 'none';
+        // this.touch.elList.style.transition = 'none';
         this.touch.elList.style.transform = 'translate(0, ' + disY + 'px)';
-        this.touch.translateY = disY;        
+        this.touch.translateY = disY;
         this.touch.lastTouchMovePoints.push({
             clientY: clientY,
             timeStamp: e.timeStamp
@@ -114,26 +115,27 @@ Picker.prototype = {
         //     translateY = that.touch.translateY;
 
         // }
-        
+
         // that.touch.elList.style.transform = 'translate(0, ' + translateY + 'px)';
         // that.touch.elList.dataset.translateY = translateY;
 
-        touchMovePointLast = that.touch.lastTouchMovePoints[that.touch.lastTouchMovePoints.length - 1];
-        speed = (touchMovePointLast.clientY - that.touch.lastTouchMovePoints[0].clientY) / (touchMovePointLast.timeStamp - that.touch.lastTouchMovePoints[0].timeStamp);
-        
+        if (that.touch.lastTouchMovePoints.length >= 2) {
+            touchMovePointLast = that.touch.lastTouchMovePoints[that.touch.lastTouchMovePoints.length - 1];
+            speed = (touchMovePointLast.clientY - that.touch.lastTouchMovePoints[0].clientY) / (touchMovePointLast.timeStamp - that.touch.lastTouchMovePoints[0].timeStamp);
+        } else {
+            speed = 0;
+        }
+
         that.inertia(speed, function (distance) {
             var translateY = 0;
 
             translateY = that.touch.translateY + distance;
             that.touch.elList.style.transform = 'translate(0, ' + translateY + 'px)';
             that.touch.elList.dataset.translateY = translateY;
-        }, function () {
-            that.touch.translateY = 0;
-
-            // 超过上下边界时回弹
+        }, function (distance) {
+            that.touch.translateY = that.touch.translateY + distance;
         });
 
-        that.touch.elScroll = null;
         that.touch.startY = 0;
         that.touch.lastTouchMovePoints = [];
     },
@@ -147,15 +149,33 @@ Picker.prototype = {
     inertia: function (speed, processCallback, finishCallback) {
         var that = this;
         var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
+        // 最小速度
+        var speedMin = 0.2;
+        // 最大速度
+        var speedMax = 0.8;
+        // 速度放大系数
+        var speedFactor = 10;
         var duration = 1000 / 60;
-
         // 加速度
-        var acceleration = (speed > 0 ? -1 : 1) * 0.03;
-
-        // 累计移动距离
+        var acceleration = 0.3;
+        // 当前移动距离
         var distance = 0;
-
+        // 定时器方法
         var interval = null;
+        // 移动的总距离
+        var endDistance = 0;
+        // 总帧数
+        var frameCount = 0;
+        // 选项高度
+        var optionHeight = that.touch.elList.querySelector('.picker-item').clientHeight;
+        // 实际移动总距离
+        var realDistance = 0;
+
+        // 保证速度不为0
+        speed = speed || 1e-5;
+
+        // 加速度方向
+        acceleration *= -Math.sign(speed);
 
         if (!requestAnimationFrame) {
             requestAnimationFrame = function( callback ){
@@ -163,25 +183,45 @@ Picker.prototype = {
             };
         }
 
-        speed = Math.abs(speed) > 0.8 ? (speed > 0 ? 1 : -1) * 0.8 : speed;
+        // 限制最大速度
+        speed = Math.abs(speed) > speedMax ? Math.sign(speed) * speedMax : speed;
 
+        speed *= speedFactor;
+
+        frameCount = Math.ceil(Math.abs(speed / acceleration));
+        
+        endDistance = frameCount * (speed + (frameCount - 1) * acceleration / 2);
+
+        realDistance = Math.round((endDistance + that.touch.translateY) / optionHeight) * optionHeight - that.touch.translateY;
+
+        if (Math.sign(realDistance) * Math.sign(endDistance) === -1) {
+            speed = -speed;
+        }
+        
+        // 限制最小速度
+        speed = Math.abs(speed) < (speedMin * speedFactor) ? Math.sign(speed) * (speedMin * speedFactor) : speed;
+
+        // 重新计算加速度
+        acceleration = Math.pow(speed, 2) / (speed - 2 * realDistance);
+        
         interval = function (callback) {
-            if (that.touch.inertiaActive && (acceleration < 0 && speed > 0 || acceleration > 0 && speed < 0)) {
+            if (that.touch.inertiaActive && Math.sign(acceleration) * Math.sign(speed) === -1) {
                 requestAnimationFrame(function () {
                     callback();
                     interval(callback);
                 });
-            } else {                
+            } else {
+                processCallback(distance);
                 finishCallback && finishCallback(distance);
                 that.touch.inertiaActive = false;
             }
         };
-                    
+
         that.touch.inertiaActive = true;
 
         interval(function () {
-            distance += speed * duration;
-            processCallback && processCallback(distance);
+            distance += speed;
+            processCallback(distance);
             speed += acceleration;
         });
     },
