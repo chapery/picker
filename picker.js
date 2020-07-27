@@ -19,6 +19,9 @@ var Picker = function (target, config) {
          */
         lastTouchMovePoints: []
     },
+    // 允许超出滚动边界的最大距离
+    this.flexableDistance = 40;
+    
     this.createColumns();
     this.bindEvent();
 }
@@ -126,15 +129,7 @@ Picker.prototype = {
             speed = 0;
         }
 
-        that.inertia(speed, function (distance) {
-            var translateY = 0;
-
-            translateY = that.touch.translateY + distance;
-            that.touch.elList.style.transform = 'translate(0, ' + translateY + 'px)';
-            that.touch.elList.dataset.translateY = translateY;
-        }, function (distance) {
-            that.touch.translateY = that.touch.translateY + distance;
-        });
+        that.inertia(speed);
 
         that.touch.startY = 0;
         that.touch.lastTouchMovePoints = [];
@@ -143,10 +138,8 @@ Picker.prototype = {
     /**
      * 惯性减速
      * @param {Number} speed 初始速度
-     * @param {Function} processCallback 运动中回调
-     * @param {Function} finishCallback 运动结束回调
      */
-    inertia: function (speed, processCallback, finishCallback) {
+    inertia: function (speed) {
         var that = this;
         var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
         // 最小速度
@@ -170,6 +163,14 @@ Picker.prototype = {
         var optionHeight = that.touch.elList.querySelector('.picker-item').clientHeight;
         // 实际移动总距离
         var realDistance = 0;
+        // 每一帧执行
+        var processFn = function () {
+            var translateY = 0;
+
+            translateY = that.touch.translateY + distance;
+            that.touch.elList.style.transform = 'translate(0, ' + translateY + 'px)';
+            that.touch.elList.dataset.translateY = translateY;
+        };
 
         // 保证速度不为0
         speed = speed || 1e-5;
@@ -206,13 +207,15 @@ Picker.prototype = {
         
         interval = function (callback) {
             if (that.touch.inertiaActive && Math.sign(acceleration) * Math.sign(speed) === -1) {
+                // 减速中
                 requestAnimationFrame(function () {
                     callback();
                     interval(callback);
                 });
             } else {
-                processCallback(distance);
-                finishCallback && finishCallback(distance);
+                // 减速结束
+                processFn();
+                that.touch.translateY += distance;
                 that.touch.inertiaActive = false;
             }
         };
@@ -221,7 +224,7 @@ Picker.prototype = {
 
         interval(function () {
             distance += speed;
-            processCallback(distance);
+            processFn();
             speed += acceleration;
         });
     },
