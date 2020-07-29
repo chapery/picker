@@ -20,7 +20,7 @@ var Picker = function (target, config) {
         lastTouchMovePoints: []
     },
     // 允许超出滚动边界的最大距离
-    this.flexableDistance = 40;
+    this.flexableDistance = 80;
     
     this.createColumns();
     this.bindEvent();
@@ -80,13 +80,22 @@ Picker.prototype = {
     touchMove: function (e) {
         var disY = 0;
         var clientY = e.touches[0].clientY;
-        
+        var elItems = this.touch.elList.querySelectorAll('.picker-item');
+        var disYMin = -elItems[0].clientHeight * (elItems.length - 1);
+
         if (!this.touch.elScroll) {
             return true;
         }
 
         disY = clientY - this.touch.startY + (Number(this.touch.elList.dataset.translateY) || 0);
-        // this.touch.elList.style.transition = 'none';
+
+        // 超过上下边界
+        if (disY > 0) {
+            disY = this.flexableDistance / Math.sqrt(screen.height) * Math.sqrt(disY);
+        } else if (disY < disYMin) {
+            disY = -(this.flexableDistance / Math.sqrt(screen.height) * Math.sqrt(-disY + disYMin)) + disYMin;
+        }
+
         this.touch.elList.style.transform = 'translate(0, ' + disY + 'px)';
         this.touch.translateY = disY;
         this.touch.lastTouchMovePoints.push({
@@ -108,20 +117,6 @@ Picker.prototype = {
 
         elItemHeight = that.touch.elList.children[0].clientHeight;
 
-        // if (that.touch.translateY > 0) {
-        //     translateY = 0;
-        //     that.touch.elList.style.transition = 'transform 500ms ease-out';
-        // } else if (that.touch.translateY < -that.touch.elList.scrollHeight + elItemHeight) {
-        //     translateY = -that.touch.elList.scrollHeight + elItemHeight;
-        //     that.touch.elList.style.transition = 'transform 500ms ease-out';
-        // } else {
-        //     translateY = that.touch.translateY;
-
-        // }
-
-        // that.touch.elList.style.transform = 'translate(0, ' + translateY + 'px)';
-        // that.touch.elList.dataset.translateY = translateY;
-
         if (that.touch.lastTouchMovePoints.length >= 2) {
             touchMovePointLast = that.touch.lastTouchMovePoints[that.touch.lastTouchMovePoints.length - 1];
             speed = (touchMovePointLast.clientY - that.touch.lastTouchMovePoints[0].clientY) / (touchMovePointLast.timeStamp - that.touch.lastTouchMovePoints[0].timeStamp);
@@ -131,6 +126,7 @@ Picker.prototype = {
 
         that.inertia(speed);
 
+        that.touch.elScroll = null;
         that.touch.startY = 0;
         that.touch.lastTouchMovePoints = [];
     },
@@ -145,7 +141,7 @@ Picker.prototype = {
         // 最小速度
         var speedMin = 0.2;
         // 最大速度
-        var speedMax = 0.8;
+        var speedMax = 1.5;
         // 速度放大系数
         var speedFactor = 10;
         var duration = 1000 / 60;
@@ -155,12 +151,15 @@ Picker.prototype = {
         var distance = 0;
         // 定时器方法
         var interval = null;
-        // 移动的总距离
-        var endDistance = 0;
+        // 移动的总距离(排除选项和上下边界的限制时)
+        var willDistance = 0;
         // 总帧数
         var frameCount = 0;
+        var elItems = this.touch.elList.querySelectorAll('.picker-item');
         // 选项高度
-        var optionHeight = that.touch.elList.querySelector('.picker-item').clientHeight;
+        var optionHeight = elItems[0].clientHeight;
+        // 下边界位移
+        var disYMin = -optionHeight * (elItems.length - 1);
         // 实际移动总距离
         var realDistance = 0;
         // 每一帧执行
@@ -191,11 +190,18 @@ Picker.prototype = {
 
         frameCount = Math.ceil(Math.abs(speed / acceleration));
         
-        endDistance = frameCount * (speed + (frameCount - 1) * acceleration / 2);
+        willDistance = frameCount * (speed + (frameCount - 1) * acceleration / 2);
 
-        realDistance = Math.round((endDistance + that.touch.translateY) / optionHeight) * optionHeight - that.touch.translateY;
+        realDistance = Math.round((willDistance + that.touch.translateY) / optionHeight) * optionHeight - that.touch.translateY;
 
-        if (Math.sign(realDistance) * Math.sign(endDistance) === -1) {
+        // 超过上下边界
+        if (willDistance + that.touch.translateY > 0) {
+            realDistance = -that.touch.translateY;
+        } else if (willDistance + that.touch.translateY < disYMin) {
+            realDistance = disYMin - that.touch.translateY;
+        }
+
+        if (Math.sign(realDistance) * Math.sign(willDistance) === -1) {
             speed = -speed;
         }
         
@@ -262,7 +268,7 @@ new Picker('input[data-picker]', {
                 {
                     value: 7,
                     name: '选项7'
-                }
+                },
             ]
         }
     ]
