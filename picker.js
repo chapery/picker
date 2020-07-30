@@ -139,9 +139,9 @@ Picker.prototype = {
         var that = this;
         var requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
         // 最小速度
-        var speedMin = 0.2;
+        var speedMin = 0.3;
         // 最大速度
-        var speedMax = 1.5;
+        var speedMax = 2 ;
         // 速度放大系数
         var speedFactor = 10;
         var duration = 1000 / 60;
@@ -268,6 +268,51 @@ new Picker('input[data-picker]', {
                 {
                     value: 7,
                     name: '选项7'
+                },
+                {
+                    value: 8,
+                    name: '选项8'
+                },
+                {
+                    value: 9,
+                    name: '选项9'
+                },
+                {
+                    value: 10,
+                    name: '选项10'
+                },
+            ]
+        },
+        {
+            label: ':',
+            options: [
+                {
+                    value: 11,
+                    name: '选项11'
+                },
+                {
+                    value: 22,
+                    name: '选项22'
+                },
+                {
+                    value: 33,
+                    name: '选项33'
+                },
+                {
+                    value: 44,
+                    name: '选项44'
+                },
+                {
+                    value: 55,
+                    name: '选项55'
+                },
+                {
+                    value: 66,
+                    name: '选项66'
+                },
+                {
+                    value: 77,
+                    name: '选项77'
                 },
             ]
         }
