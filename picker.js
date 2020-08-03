@@ -90,7 +90,7 @@ Picker.prototype = {
             var elItems = null;
 
             var itemsHtml = column.options.map(function (item) {
-                return '<div class="picker-item">' + item.name + '</div>';
+                return '<div class="picker-item">' + item.value + '</div>';
             }).join('');
             var columnHtml = '<div class="picker-scroll" data-column-index="' + columnIndex + '">\
                                 <div class="picker-list">'
@@ -128,7 +128,22 @@ Picker.prototype = {
             }
         }, false);
 
-        this.elPicker.querySelector('.picker-cancel').addEventListener('click', function () {
+        this.elPicker.querySelector('.picker-cancel').addEventListener('click', this.toggle.bind(this), false);
+
+        this.elPicker.querySelector('.picker-confirm').addEventListener('click', function () {
+            var result = that.config.columns.map(function (column, columnIndex) {
+
+                return column.options[that.columns[columnIndex].activeIndex];
+            });
+
+            that.elTarget.value = result.map(function (item) {
+                return item.value;
+            }).join(',');
+
+            that.elTarget.dataset.value = result.map(function (item) {
+                return item.key;
+            }).join(',');
+
             that.toggle();
         }, false);
         
@@ -314,6 +329,19 @@ Picker.prototype = {
             speed += acceleration;
         });
     },
+
+    /**
+     * 移动到某一项
+     * @param {Number} columnIndex
+     * @param {Number} itemIndex
+     */
+    toItem: function (columnIndex, itemIndex) {
+        var activeColumn = this.columns[columnIndex];
+        var translateY = -activeColumn.elItems[0].clientHeight * (itemIndex - 1);
+
+        activeColumn.translateY = translateY;
+        activeColumn.elList.style.transform = 'translate(0, ' + translateY + 'px)';
+    }
 };
 
 var Datetime = function () {
@@ -324,46 +352,47 @@ new Picker('input[data-picker]', {
     columns: [
         {
             label: ':',
+            selected: 2,
             options: [
                 {
-                    value: 1,
-                    name: '选项1'
+                    key: 1,
+                    value: '选项1'
                 },
                 {
-                    value: 2,
-                    name: '选项2'
+                    key: 2,
+                    value: '选项2'
                 },
                 {
-                    value: 3,
-                    name: '选项3'
+                    key: 3,
+                    value: '选项3'
                 },
                 {
-                    value: 4,
-                    name: '选项4'
+                    key: 4,
+                    value: '选项4'
                 },
                 {
-                    value: 5,
-                    name: '选项5'
+                    key: 5,
+                    value: '选项5'
                 },
                 {
-                    value: 6,
-                    name: '选项6'
+                    key: 6,
+                    value: '选项6'
                 },
                 {
-                    value: 7,
-                    name: '选项7'
+                    key: 7,
+                    value: '选项7'
                 },
                 {
-                    value: 8,
-                    name: '选项8'
+                    key: 8,
+                    value: '选项8'
                 },
                 {
-                    value: 9,
-                    name: '选项9'
+                    key: 9,
+                    value: '选项9'
                 },
                 {
-                    value: 10,
-                    name: '选项10'
+                    key: 10,
+                    value: '选项10'
                 },
             ]
         },
@@ -371,32 +400,32 @@ new Picker('input[data-picker]', {
             label: ':',
             options: [
                 {
-                    value: 11,
-                    name: '选项11'
+                    key: 11,
+                    value: '选项11'
                 },
                 {
-                    value: 22,
-                    name: '选项22'
+                    key: 22,
+                    value: '选项22'
                 },
                 {
-                    value: 33,
-                    name: '选项33'
+                    key: 33,
+                    value: '选项33'
                 },
                 {
-                    value: 44,
-                    name: '选项44'
+                    key: 44,
+                    value: '选项44'
                 },
                 {
-                    value: 55,
-                    name: '选项55'
+                    key: 55,
+                    value: '选项55'
                 },
                 {
-                    value: 66,
-                    name: '选项66'
+                    key: 66,
+                    value: '选项66'
                 },
                 {
-                    value: 77,
-                    name: '选项77'
+                    key: 77,
+                    value: '选项77'
                 },
             ]
         }
