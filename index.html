@@ -5,12 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0">
     <link rel="stylesheet" href="picker.css">
+    <link rel="stylesheet" href="index.css">
     <title>picker</title>
 </head>
 
 <body>
-    <input type="text" readonly data-picker/>
-    <div class="picker-mask">
+    <form class="form-test">
+        <label>单列：</label>
+        <input class="singleSelect" type="text" readonly />
+        <label>多列：</label>
+        <input class="multiSelect" type="text" readonly />
+        <label>date：</label>
+        <input class="date" type="text" readonly />
+    </form>
+
+    <!-- <div class="picker-mask">
         <div class="picker-container">
             <div class="picker-operate">
                 <div class="picker-cancel">取消</div>
@@ -18,7 +27,7 @@
             </div>
             <div class="picker-box">
                 <div class="picker-columns">
-                    <!-- <div class="picker-column">
+                    <div class="picker-column">
                         <div class="picker-scroll">
                             <div class="picker-list">
                                 <div class="picker-item">选项一</div>
@@ -30,13 +39,15 @@
                             </div>
                         </div>
                         <div class="picker-label">:</div>
-                    </div> -->
+                    </div>
                 </div>
                 <div class="picker-view"></div>
             </div>
         </div>
-    </div>
+    </div> -->
+    
     <script src="picker.js"></script>
+    <script src="index.js"></script>
 </body>
 
 </html>

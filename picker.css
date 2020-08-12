@@ -158,4 +158,8 @@
       -ms-grid-row-align: center;
       align-self: center;
 }
+
+.picker-label:empty {
+  display: none;
+}
 /*# sourceMappingURL=picker.css.map */

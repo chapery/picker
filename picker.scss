@@ -104,4 +104,7 @@
 .picker-label{
     padding: 0 10px;
     align-self: center;
+    &:empty{
+        display: none;
+    }
 }
