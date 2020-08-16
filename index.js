@@ -104,5 +104,28 @@ new Picker('.multiSelect', {
 
 // date
 new Picker('.date', {
-    type: 'date'
+    type: 'date',
+    selected: '2020-08-16',
+    on: {
+        confirm: function (target, resultList) {
+            target.value = resultList.map(function (item) {
+                return item.value
+            }).join('-');
+        }
+    }
+})
+
+// date
+new Picker('.datetime', {
+    type: 'datetime',
+    selected: '2020-08-16 15:23:00',
+    on: {
+        confirm: function (target, resultList) {
+            var splitChars = this.config.selected.match(/[^\d]+/g);
+
+            target.value = resultList.map(function (item, index) {
+                return item.value + (splitChars[index] || '');
+            }).join('');
+        }
+    }
 })

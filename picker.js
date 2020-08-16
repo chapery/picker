@@ -1,21 +1,47 @@
 (function () {
+    var event = function () {
+        var that = this;
+        var stack = {};
+
+        return {
+            stack: stack,
+
+            on: function (type, callback) {
+                var stackCurrent = stack[type] || [];
+                stackCurrent.push(callback);
+
+                stack[type] = stackCurrent;
+            },
+
+            trigger: function (type) {
+                var callbackArguments = [].slice.call(arguments, 1);
+                var stackCurrent = stack[type] || [];
+
+                stackCurrent.forEach(function (callback) {
+                    callback.apply(that, callbackArguments);
+                });
+            }
+        }
+    };
+
     var Picker = function (target, config) {
         this.elTarget = typeof target === 'string' ? document.querySelector(target) : target;
         this.config = config;
         this.elPicker = null;
         this.elColumnsWrap = null;
+        this.event = event.apply(this, arguments);
 
         // 允许超出滚动边界的最大距离
         this.flexableDistance = 100;
 
-        if (this.config.type === 'date') {
+        if (['date', 'datetime'].indexOf(this.config.type) > -1) {
             this.date();
         }
 
         // 存放每列相关属性
-        this.columns = this.config.columns.map(function () {
-
-            return {
+        this.columns = this.config.columns.map(function (column) {
+            var result = {
+                config: column,
                 elColumn: null,
                 elScroll: null,
                 elList: null,
@@ -43,6 +69,16 @@
                 // 当前选中项索引
                 activeIndex: 0
             }
+
+            column.options.some(function (option, optionIndex) {
+                if (option.key === column.selected) {
+                    result.activeIndex = optionIndex;
+
+                    return true;
+                }
+            });
+
+            return result;
         });
 
         // touch状态下的column
@@ -55,7 +91,6 @@
         this.createColumns();
         this.layout();
         this.bindEvent();
-        this.event.on('click', function () {});
     }
 
     Picker.prototype = {
@@ -91,16 +126,15 @@
         createDom: function () {
             var elMask = document.createElement('div');
             var template = '<div class="picker-container">\
-            <div class="picker-operate">\
-                <div class="picker-cancel">取消</div>\
-                <div class="picker-confirm">确认</div>\
-            </div>\
-            <div class="picker-box">\
-                <div class="picker-columns">\
+                <div class="picker-operate">\
+                    <div class="picker-cancel">取消</div>\
+                    <div class="picker-confirm">确认</div>\
                 </div>\
-                <div class="picker-view"></div>\
-            </div>\
-        </div>';
+                <div class="picker-box">\
+                    <div class="picker-columns">\
+                    </div>\
+                </div>\
+            </div>';
 
             elMask.className = 'picker-mask';
             elMask.innerHTML = template;
@@ -128,13 +162,10 @@
                     return '<div class="picker-item">' + (typeof item.value === 'undefined' ? '' : item.value) + '</div>';
                 }).join('');
                 var columnHtml = '<div class="picker-scroll" data-column-index="' + columnIndex + '">\
-                                <div class="picker-list">'
-                    + itemsHtml +
-                    '</div>\
-                            </div>\
-                            <div class="picker-label">'
-                    + (typeof column.label === 'undefined' ? '' : column.label) +
-                    '</div>';
+                                    <div class="picker-list">' + itemsHtml + '</div>\
+                                    <div class="picker-view"></div>\
+                                </div>\
+                                <div class="picker-label">' + (typeof column.label === 'undefined' ? '' : column.label) + '</div>';
 
                 elColumn.className = 'picker-column';
                 elColumn.innerHTML = columnHtml;
@@ -177,13 +208,16 @@
                 });
 
                 that.elTarget.value = result.map(function (item) {
+
                     return item.value;
                 }).join(',');
 
                 that.elTarget.dataset.value = result.map(function (item) {
+
                     return item.key;
                 }).join(',');
 
+                that.event.trigger('confirm', that.elTarget, result);
                 that.toggle();
             }, false);
 
@@ -193,7 +227,9 @@
                 column.elScroll.addEventListener('touchmove', that.touchMove.bind(that), false);
             });
 
-            // document.addEventListener('touchmove', that.touchMove.bind(that), false);
+            for (var key in that.config.on) {
+                that.event.on(key, that.config.on[key]);
+            }
         },
 
         layout: function () {
@@ -402,63 +438,140 @@
             activeColumn.translateY = translateY;
 
             activeColumn.activeIndex = itemIndex;
-            this.event.trigger('change', columnIndex);
+        },
+
+        updateItems: function (columnIndex) {
+            var column = this.columns[columnIndex];
+            var itemsHtml = column.config.options.map(function (item) {
+                return '<div class="picker-item">' + (typeof item.value === 'undefined' ? '' : item.value) + '</div>';
+            }).join('');
+
+            column.elList.innerHTML = itemsHtml;
+
+            column.elItems = [].slice.call(column.elList.querySelectorAll('.picker-item'));
+
+            if (column.activeIndex >= column.elItems.length) {
+                this.toItem(columnIndex, column.elItems.length - 1);
+            }
         },
 
         date: function () {
-            this.config.columns = [
-                {
-                    label: '年',
-                    selected: 0,
-                    options: Array.apply(null, { length: 200 }).map(function (item, index) {
-                        var startYear = 1900;
-                        var year = startYear + index;
+            var that = this;
+            var dateNow = new Date();
+            var configSelected = [];
+            var columns = [];
+            var createList = function (start, length) {
+                return Array.apply(null, { length: length }).map(function (item, index) {
+                    var value = index + start;
 
-                        return {
-                            key: year,
-                            value: year
-                        }
-                    })
+                    return {
+                        key: value,
+                        value: value.toString().replace(/^\d$/, '0$&')
+                    }
+                })
+            };
+            var generateDate = function (year, month) {
+                var dateLength = 30;
+
+                if (month === 2) {
+                    if (year % 4 === 0 && year % 100 !== 0 || year % 400 === 0) {
+                        dateLength = 29;
+                    } else {
+                        dateLength = 28;
+                    }
+                } else if ([1, 3, 5, 7, 8, 10, 12].indexOf(month) > -1) {
+                    dateLength = 31;
+                } else {
+                    dateLength = 30;
+                }
+
+                return createList(1, dateLength);
+            };
+
+            if (that.config.selected) {
+                configSelected = that.config.selected.split(/-| |:/).map(function (item) {
+                    return Number(item);
+                });
+            } else {
+                // 默认取当前日期
+                configSelected = [dateNow.getFullYear(), dateNow.getMonth() + 1, dateNow.getDate()];
+            }
+
+            columns = [
+                {
+                    name: 'year',
+                    label: '年',
+                    selected: configSelected[0],
+                    options: createList(1900, 200),
                 },
                 {
+                    name: 'month',
                     label: '月',
-                    selected: 0,
-                    options: Array.apply(null, { length: 30 }).map(function (item, index) {
-                        var month = index + 1;
-
-                        return {
-                            key: month,
-                            value: month
-                        }
-                    })
+                    selected: configSelected[1],
+                    options: createList(1, 12)
+                },
+                {
+                    name: 'date',
+                    label: '日',
+                    selected: configSelected[2],
+                    options: generateDate(configSelected[0], configSelected[1])
                 }
             ];
 
-            this.event.on('change', function (columnIndex) {
-                console.log(columnIndex)
-            });
-        },
-
-        event: {
-            
-            stack: {},
-
-            on: function (type, callback) {
-                var stackCurrent = this.stack[type] || [];
-                stackCurrent.push(callback);
-
-                this.stack[type] = stackCurrent;
-            },
-
-            trigger: function (type) {
-                var that = this;
-                var callbackArguments = [].slice.call(arguments, 1);
-                var stackCurrent = this.stack[type] || [];
-
-                stackCurrent.forEach(function (callback) {
-                    callback.apply(that, callbackArguments);
+            if (that.config.type === 'datetime') {
+                columns.push({
+                    name: 'hour',
+                    label: '时',
+                    selected: configSelected[3],
+                    options: createList(0, 24)
+                }, {
+                    name: 'minute',
+                    label: '分',
+                    selected: configSelected[4],
+                    options: createList(0, 60)
+                }, {
+                    name: 'second',
+                    label: '秒',
+                    selected: configSelected[5],
+                    options: createList(0, 60)
                 });
-            }
+            };
+
+            this.config.columns = columns;
+
+            this.event.on('change', function (columnIndex) {
+                var activeColumn = that.columns[columnIndex];
+                var columnYear;
+                var columnMonth;
+                var columnDate;
+                var selectedYear;
+                var selectedMonth;
+
+                that.columns.forEach(function (column) {
+                    switch (column.config.name) {
+                        case 'year':
+                            columnYear = column;
+                            break;
+                        case 'month':
+                            columnMonth = column;
+                            break;
+                        case 'date':
+                            columnDate = column;
+                            break;
+                        default:
+                            break;
+                    }
+                });
+
+                if (activeColumn.config.name === 'year' || activeColumn.config.name === 'month') {
+                    selectedYear = columnYear.config.options[columnYear.activeIndex].key;
+                    selectedMonth = columnMonth.config.options[columnMonth.activeIndex].key;
+
+                    columnDate.config.options = generateDate(selectedYear, selectedMonth);
+
+                    that.updateItems(that.columns.indexOf(columnDate));
+                }
+            });
         }
     };
 
