@@ -2,7 +2,7 @@
 
 原生实现，不依赖于任何第三方库。
 
-## [在线demo](http://ww.baidu.com)
+<!-- ## [在线demo](http://ww.baidu.com) -->
 
 ## 引入
 
