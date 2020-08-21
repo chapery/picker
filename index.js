@@ -115,7 +115,7 @@ new Picker('.date', {
     }
 })
 
-// date
+// datetime
 new Picker('.datetime', {
     type: 'datetime',
     selected: '2020-08-16 15:23:00',
